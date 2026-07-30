@@ -1,0 +1,533 @@
+<template>
+  <div class="task-detail-page">
+    <div class="page-header">
+      <div class="header-left">
+        <h2>任务详情</h2>
+        <p class="page-desc">查看任务 {{ selectedDate }} 的详细短信数据</p>
+      </div>
+      <div class="header-actions">
+        <el-button @click="goBack">返回概览</el-button>
+        <el-button type="primary" @click="refresh">刷新</el-button>
+      </div>
+    </div>
+
+    <el-card shadow="hover" class="info-card" v-if="taskData.task_date">
+      <div class="task-info-header">
+        <div class="task-badges">
+          <el-tag effect="plain" size="large">{{ taskData.task_date }}</el-tag>
+          <el-tag size="small" :type="taskData.scene_mode === 'rule_only' ? 'primary' : 'warning'" effect="light">{{ getModeText(taskData.scene_mode) }}</el-tag>
+          <el-tag :type="getStatusType(taskData.status)" size="small" round effect="dark">{{ getStatusText(taskData.status) }}</el-tag>
+        </div>
+        <div class="task-progress-inline">
+          <span class="info-label">总进度：</span>
+          <el-progress :percentage="taskProgress" :stroke-width="6" style="width:200px" :color="taskProgressColor" />
+          <span class="progress-text">{{ taskProgressText }}</span>
+        </div>
+      </div>
+      <div class="task-stages">
+        <div class="stage-item" :class="{done: taskData.input_status === 'closed'}">
+          <span class="stage-icon">1</span>
+          <span class="stage-name">数据收集</span>
+          <el-tag size="small" :type="taskData.input_status === 'closed' ? 'success' : 'info'">{{ taskData.input_status === 'closed' ? '已完成' : '进行中' }}</el-tag>
+        </div>
+        <div class="stage-arrow">→</div>
+        <div class="stage-item" :class="{done: taskData.nearline_status === 'done'}">
+          <span class="stage-icon">2</span>
+          <span class="stage-name">近线研判</span>
+          <el-tag size="small" :type="taskData.nearline_status === 'done' ? 'success' : 'info'">{{ taskData.nearline_status === 'done' ? '已完成' : '进行中' }}</el-tag>
+        </div>
+        <div class="stage-arrow">→</div>
+        <div class="stage-item" :class="{done: taskData.day_end_status === 'done'}">
+          <span class="stage-icon">3</span>
+          <span class="stage-name">日终分析</span>
+          <el-tag size="small" :type="taskData.day_end_status === 'done' ? 'success' : taskData.day_end_status === 'running' ? 'warning' : 'info'">{{ taskData.day_end_status === 'done' ? '已完成' : taskData.day_end_status === 'running' ? '进行中' : '等待' }}</el-tag>
+        </div>
+      </div>
+    </el-card>
+    <el-card shadow="hover" class="info-card" v-else-if="loading"><el-skeleton :rows="2" animated /></el-card>
+
+    <el-row :gutter="24" class="progress-row" v-if="taskData.task_date">
+      <el-col :xs="24" :lg="24">
+        <el-card shadow="hover" class="progress-card">
+          <template #header>
+            <div class="card-header">
+              <span class="card-title">实时处理进度</span>
+              <el-button size="small" link type="primary" @click="loadProgress" :loading="progressLoading">刷新</el-button>
+            </div>
+          </template>
+          <div v-if="progressData" class="progress-content">
+            <div class="progress-section flex-1">
+              <div class="section-label">批次处理</div>
+              <div class="progress-row-inner">
+                <div class="progress-stat"><span class="ps-value">{{ progressData.batches.done }}</span><span class="ps-label">已完成</span></div>
+                <el-progress :percentage="getBatchesProgress()" :stroke-width="10" style="flex:1" color="#6366f1" />
+                <div class="progress-stat"><span class="ps-value">{{ progressData.batches.total }}</span><span class="ps-label">总批次</span></div>
+              </div>
+              <div class="batch-tags">
+                <el-tag size="small" type="success" v-if="progressData.batches.done > 0">完成 {{ progressData.batches.done }}</el-tag>
+                <el-tag size="small" type="danger" v-if="progressData.batches.failed > 0">失败 {{ progressData.batches.failed }}</el-tag>
+                <el-tag size="small" type="info" v-if="progressData.batches.pending > 0">待处理 {{ progressData.batches.pending }}</el-tag>
+              </div>
+            </div>
+            <div class="progress-section flex-1">
+              <div class="section-label">短信记录处理</div>
+              <div class="progress-row-inner">
+                <div class="progress-stat"><span class="ps-value">{{ (progressData.records.processed||0).toLocaleString() }}</span><span class="ps-label">已处理</span></div>
+                <el-progress :percentage="getRecordsProgress()" :stroke-width="10" style="flex:1" color="#10b981" />
+                <div class="progress-stat"><span class="ps-value">{{ (progressData.records.total||0).toLocaleString() }}</span><span class="ps-label">总记录</span></div>
+              </div>
+            </div>
+            <div class="progress-section flex-1" v-if="progressData.day_end">
+              <div class="section-label">日终分析</div>
+              <div class="progress-row-inner">
+                <div class="progress-stat"><span class="ps-value">{{ progressData.day_end.detail || progressData.day_end.status }}</span><span class="ps-label">状态</span></div>
+                <el-progress :percentage="progressData.day_end.progress||0" :stroke-width="10" style="flex:1" :color="progressData.day_end.status==='done'?'#10b981':progressData.day_end.status==='running'?'#f59e0b':'#94a3b8'" />
+              </div>
+              <div class="batch-tags" v-if="progressData.pipeline_stats">
+                <el-tag size="small" type="info">发现号码: {{ progressData.pipeline_stats.callers }} 个</el-tag>
+              </div>
+            </div>
+            <div class="recent-batches flex-2" v-if="progressData.recent_batches && progressData.recent_batches.length">
+              <div class="section-label">最近批次</div>
+              <div class="batch-list">
+                <div v-for="b in progressData.recent_batches" :key="b.id" class="batch-item">
+                  <el-tag size="small" :type="batchStatusType(b.status)" effect="plain">#{{ b.daily_batch_no }}</el-tag>
+                  <span class="batch-info">{{ b.row_count }} 条</span>
+                  <span class="batch-info" v-if="b.processing_elapsed_ms">{{ b.processing_elapsed_ms }}ms</span>
+                  <span class="batch-error" v-if="b.error_message">{{ b.error_message.slice(0,80) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <el-skeleton :rows="3" animated v-else-if="progressLoading" />
+          <el-empty description="暂无进度数据" v-else />
+        </el-card>
+    </el-row>
+
+    <el-row :gutter="24" class="stats-row">
+      <el-col :xs="12" :sm="6"><div class="stat-card blue"><div class="stat-icon"><el-icon :size="28"><Message /></el-icon></div><div class="stat-content"><div class="stat-label">短信总数</div><div class="stat-value">{{ (taskData.total_sms||0).toLocaleString() }}</div></div></div></el-col>
+      <el-col :xs="12" :sm="6"><div class="stat-card red"><div class="stat-icon"><el-icon :size="28"><WarningFilled /></el-icon></div><div class="stat-content"><div class="stat-label">涉诈号码</div><div class="stat-value">{{ (taskData.spam_callers||0).toLocaleString() }}</div></div></div></el-col>
+      <el-col :xs="12" :sm="6"><div class="stat-card purple"><div class="stat-icon"><el-icon :size="28"><User /></el-icon></div><div class="stat-content"><div class="stat-label">号码总数</div><div class="stat-value">{{ (taskData.total_callers||0).toLocaleString() }}</div></div></div></el-col>
+      <el-col :xs="12" :sm="6"><div class="stat-card orange"><div class="stat-icon"><el-icon :size="28"><TrendCharts /></el-icon></div><div class="stat-content"><div class="stat-label">诈骗类型</div><div class="stat-value">{{ fraudTypeCount }}</div></div></div></el-col>
+    </el-row>
+
+    <el-card shadow="hover" class="filter-card">
+      <div class="filter-row">
+        <el-select v-model="filters.riskLevel" placeholder="风险等级" clearable style="width:120px" @change="onRiskLevelChange"><el-option label="高风险" value="high" /><el-option label="中风险" value="medium" /><el-option label="低风险" value="low" /></el-select>
+        <el-select v-model="filters.label" placeholder="标签" clearable style="width:140px" @change="onLabelChange"><el-option label="涉诈发送者" value="spam_sender" /><el-option label="正常发送者" value="normal_sender" /><el-option label="不确定" value="uncertain" /></el-select>
+        <el-select v-model="filters.category" placeholder="分类" clearable style="width:160px" @change="handleSearch"><el-option v-for="item in categoryOptions" :key="item" :label="item" :value="item" /></el-select>
+        <el-select v-model="filters.method" placeholder="判定方式" clearable style="width:120px" @change="handleSearch"><el-option label="LLM" value="llm" /><el-option label="规则" value="rule" /></el-select>
+        <el-button type="primary" @click="handleSearch">搜索</el-button>
+        <el-button @click="handleReset">重置</el-button>
+      </div>
+    </el-card>
+
+    <el-card shadow="hover" class="table-card">
+      <div class="table-toolbar">
+        <span class="table-info">共 {{ totalCount }} 条号码</span>
+        <el-radio-group v-model="sortOrder" size="small" @change="handleSort">
+          <el-radio-button value="risk">按风险排序</el-radio-button>
+          <el-radio-button value="confidence">按置信度</el-radio-button>
+          <el-radio-button value="count">按短信数</el-radio-button>
+        </el-radio-group>
+      </div>
+      <el-table :data="paginatedData" stripe v-loading="tableLoading" :row-class-name="rowClassName">
+        <el-table-column type="index" label="#" width="60" align="center"><template #default="scope">{{ (pagination.page-1)*pagination.pageSize+scope.$index+1 }}</template></el-table-column>
+        <el-table-column prop="caller" label="号码" width="150" sortable><template #default="scope"><span class="phone-num">{{ scope.row.caller }}</span></template></el-table-column>
+        <el-table-column label="风险" width="100" align="center" sortable sort-by="label"><template #default="scope"><el-tag :type="getRiskType(scope.row.label)" effect="dark" round>{{ getRiskText(scope.row.label) }}</el-tag></template></el-table-column>
+        <el-table-column label="标签" width="110" align="center"><template #default="scope"><el-tag :type="getLabelTagType(scope.row.label)" size="small" round>{{ getLabelText(scope.row.label) }}</el-tag></template></el-table-column>
+        <el-table-column prop="category" label="分类" width="140" sortable><template #default="scope"><span v-if="scope.row.category" class="category-tag">{{ scope.row.category }}</span><span v-else class="text-muted">-</span></template></el-table-column>
+        <el-table-column prop="confidence" label="置信度" width="130" align="center" sortable><template #default="scope"><div class="confidence-wrap"><el-progress :percentage="Math.round((scope.row.confidence||0)*100)" :stroke-width="6" :show-text="false" :color="getConfidenceColor(scope.row.confidence)" style="width:60px" /><span class="conf-text">{{ ((scope.row.confidence||0)*100).toFixed(0) }}%</span></div></template></el-table-column>
+        <el-table-column prop="judged_sms_total" label="短信数" width="80" align="center" sortable><template #default="scope"><span class="sms-count">{{ scope.row.judged_sms_total||'-' }}</span></template></el-table-column>
+        <el-table-column prop="method" label="方式" width="80" align="center" sortable><template #default="scope"><el-tag size="small" :type="scope.row.method==='llm'?'warning':'primary'" round>{{ scope.row.method==='llm'?'LLM':'规则' }}</el-tag></template></el-table-column>
+        <el-table-column prop="reason" label="判定原因" min-width="200" show-overflow-tooltip />
+        <el-table-column label="操作" width="140" align="center" fixed="right"><template #default="scope"><el-button link type="primary" @click="viewCallerDetail(scope.row)">详情</el-button><el-button link type="primary" @click="viewMessages(scope.row)">短信</el-button></template></el-table-column>
+      </el-table>
+      <div class="pagination"><el-pagination v-model:current-page="pagination.page" v-model:page-size="pagination.pageSize" :total="totalCount" :page-sizes="[10,20,50,100]" layout="total, sizes, prev, pager, next, jumper" @size-change="onSizeChange" @current-change="onPageChange" /></div>
+    </el-card>
+
+    <el-dialog v-model="detailVisible" :title="'号码详情 - '+currentCaller" width="700px">
+      <el-descriptions v-if="callerDetail" :column="2" border>
+        <el-descriptions-item label="号码">{{ callerDetail.caller }}</el-descriptions-item>
+        <el-descriptions-item label="风险等级"><el-tag :type="getRiskType(callerDetail.label)" effect="dark" round>{{ getRiskText(callerDetail.label) }}</el-tag></el-descriptions-item>
+        <el-descriptions-item label="标签"><el-tag :type="getLabelTagType(callerDetail.label)" size="small" round>{{ getLabelText(callerDetail.label) }}</el-tag></el-descriptions-item>
+        <el-descriptions-item label="判定方式">{{ callerDetail.method==='llm'?'LLM':'规则' }}</el-descriptions-item>
+        <el-descriptions-item label="分类">{{ callerDetail.category||'-' }}</el-descriptions-item>
+        <el-descriptions-item label="短信数量">{{ callerDetail.judged_sms_total||'-' }}</el-descriptions-item>
+        <el-descriptions-item label="置信度" :span="2"><el-progress :percentage="Math.round((callerDetail.confidence||0)*100)" :color="getConfidenceColor(callerDetail.confidence)" /></el-descriptions-item>
+        <el-descriptions-item label="判定原因" :span="2">{{ callerDetail.reason||'-' }}</el-descriptions-item>
+      </el-descriptions>
+      <div v-if="callerDetail && callerDetail.evidence" class="evidence-section">
+        <div class="evidence-title">证据信息</div>
+        <el-descriptions :column="2" border size="small">
+          <el-descriptions-item label="URL">{{ formatEvidence(callerDetail.evidence.entity_summary && callerDetail.evidence.entity_summary.urls) }}</el-descriptions-item>
+          <el-descriptions-item label="黑名单命中">{{ formatEvidence(callerDetail.evidence.entity_summary && callerDetail.evidence.entity_summary.blacklist_hits) }}</el-descriptions-item>
+          <el-descriptions-item label="关键词">{{ formatEvidence(callerDetail.evidence.keyword_summary) }}</el-descriptions-item>
+          <el-descriptions-item label="内容电话">{{ formatEvidence(callerDetail.evidence.entity_summary && callerDetail.evidence.entity_summary.phones_in_content) }}</el-descriptions-item>
+        </el-descriptions>
+      </div>
+    </el-dialog>
+
+    <el-dialog v-model="messagesVisible" :title="'短信记录 - '+currentCaller" width="85%">
+      <el-table :data="callerMessages" stripe v-loading="msgLoading">
+        <el-table-column type="index" label="#" width="50" align="center" />
+        <el-table-column prop="caller" label="发送方" width="130" />
+        <el-table-column prop="callee" label="接收方" width="130" />
+        <el-table-column prop="content" label="短信内容" min-width="250" show-overflow-tooltip />
+        <el-table-column label="接收时间" width="160"><template #default="scope">{{ formatTime(scope.row.receive_time) }}</template></el-table-column>
+        <el-table-column label="标签" width="90" align="center"><template #default="scope"><el-tag size="small" :type="getLabelTagType(scope.row.sms_label)" round>{{ getLabelText(scope.row.sms_label) }}</el-tag></template></el-table-column>
+        <el-table-column label="操作" width="80" align="center"><template #default="scope"><el-button link type="primary" @click="viewMessageDetail(scope.row.id)">详情</el-button></template></el-table-column>
+      </el-table>
+      <div class="pagination"><el-pagination v-model:current-page="msgPagination.page" v-model:page-size="msgPagination.pageSize" :total="msgTotal" :page-sizes="[10,20,50]" layout="total, sizes, prev, pager, next" @size-change="loadMessages" @current-change="loadMessages" /></div>
+    </el-dialog>
+
+    <el-dialog v-model="msgDetailVisible" title="短信详情" width="600px">
+      <el-descriptions v-if="currentMessage" :column="1" border>
+        <el-descriptions-item label="发送号码">{{ currentMessage.caller }}</el-descriptions-item>
+        <el-descriptions-item label="接收号码">{{ currentMessage.callee||'-' }}</el-descriptions-item>
+        <el-descriptions-item label="接收时间">{{ formatTime(currentMessage.receive_time) }}</el-descriptions-item>
+        <el-descriptions-item label="标签">{{ currentMessage.sms_label }}</el-descriptions-item>
+        <el-descriptions-item label="分类">{{ currentMessage.sms_category }}</el-descriptions-item>
+        <el-descriptions-item label="短信内容">{{ currentMessage.content }}</el-descriptions-item>
+      </el-descriptions>
+    </el-dialog>
+  </div>
+</template>
+
+<script setup>
+import { ref, reactive, onMounted, onUnmounted, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import * as smsApi from '@/api/sms'
+import { ElMessage } from 'element-plus'
+import { Message, WarningFilled, TrendCharts, User } from '@element-plus/icons-vue'
+
+const route = useRoute()
+const router = useRouter()
+
+const selectedDate = ref(route.query.task_date || '')
+const loading = ref(false)
+const tableLoading = ref(false)
+const progressLoading = ref(false)
+const llmLoading = ref(false)
+const taskData = ref({})
+const progressData = ref(null)
+const llmData = ref(null)
+const callers = ref([])
+const totalCount = ref(0)
+const detailVisible = ref(false)
+const messagesVisible = ref(false)
+const msgDetailVisible = ref(false)
+const currentCaller = ref('')
+const callerDetail = ref(null)
+const callerMessages = ref([])
+const msgTotal = ref(0)
+const currentMessage = ref(null)
+const msgLoading = ref(false)
+const filters = reactive({ riskLevel:'', label:'', category:'', method:'' })
+const pagination = reactive({ page:1, pageSize:20 })
+const msgPagination = reactive({ page:1, pageSize:20 })
+const sortOrder = ref('risk')
+const categoryOptions = ['色情低俗','赌博博彩','非法服务与违禁品','广告营销','诱导加好友/引流','仿冒身份','利益诱导','情感交友诱导','威胁恐吓','骚扰催收','辱骂攻击','正常信息']
+const riskMap = { high:'spam_sender', medium:'uncertain', low:'normal_sender' }
+let progressTimer = null
+
+const fraudTypeCount = computed(() => taskData.value.fraud_type_stats ? taskData.value.fraud_type_stats.length : 0)
+
+const taskProgress = computed(() => {
+  const t = taskData.value
+  if (!t || !t.status) return 0
+  if (t.day_end_status === 'done') return 100
+  if (t.nearline_status === 'done') return 90
+  if (t.input_status === 'closed') return 60
+  if (t.input_status === 'closing') return 30
+  if (progressData.value && progressData.value.records && progressData.value.records.rate > 0) {
+    const r = progressData.value.records.rate
+    return r >= 100 ? 95 : Math.round(r * 0.5)
+  }
+  return 15
+})
+
+const taskProgressColor = computed(() => (taskData.value?.status === 'finished' || taskData.value?.status === 'completed' ? '#10b981' : '#6366f1'))
+
+const getBatchesProgress = () => {
+  const p = progressData.value
+  if (!p || !p.batches || p.batches.total === 0) return 0
+  return Math.round(p.batches.done / p.batches.total * 100)
+}
+
+const getRecordsProgress = () => {
+  const p = progressData.value
+  if (!p || !p.records || p.records.total === 0) return 0
+  return Math.round(p.records.processed / p.records.total * 100)
+}
+
+const taskProgressText = computed(() => {
+  const t = taskData.value
+  const p = progressData.value
+
+  if (!t) return '加载中...'
+
+  // 最终状态
+  if (t.status === 'completed' || t.day_end_status === 'done') return '已完成'
+  if (t.status === 'failed') return '已失败'
+
+  // 根据阶段判断
+  if (t.input_status === 'closed') {
+    if (t.nearline_status === 'done') {
+      return '日终分析中'
+    }
+    return '近线研判中'
+  }
+
+  if (t.input_status === 'closing') {
+    return '数据收集中 (关闭中)...'
+  }
+
+  // 数据收集阶段
+  if (p && p.batches && p.batches.total > 0) {
+    const percent = Math.round(p.batches.done / p.batches.total * 100)
+    return `收集中 ${percent}% (${p.batches.done}/${p.batches.total} 批次)`
+  }
+
+  // 没有任何数据时的提示
+  if (p && p.pipeline_stats && p.pipeline_stats.processed > 0) {
+    return `处理中 ${p.pipeline_stats.processed.toLocaleString()} 条...`
+  }
+
+  return '等待数据导入...'
+})
+
+const getStatusType = s => ({ running:'warning', finished:'success', completed:'success', failed:'danger' }[s] || 'info')
+const getStatusText = s => ({ running:'运行中', finished:'已完成', completed:'已完成', failed:'已停止' }[s] || s)
+const getModeText = m => ({ rule_only:'规则判定', caller_llm:'LLM号码研判', full_llm:'全流程LLM' }[m] || m)
+const batchStatusType = s => ({ done:'success', failed:'danger', processing:'warning', pending:'info' }[s] || 'info')
+
+const displayData = computed(() => {
+  let r = [...callers.value]
+  if (filters.riskLevel) r = r.filter(c => c.label === riskMap[filters.riskLevel])
+  if (filters.label) r = r.filter(c => c.label === filters.label)
+  if (filters.category) r = r.filter(c => c.category === filters.category)
+  if (filters.method) r = r.filter(c => c.method === filters.method)
+  return r
+})
+
+const sortedData = computed(() => {
+  const data = [...displayData.value]
+  if (sortOrder.value === 'risk') {
+    const order = { spam_sender:3, uncertain:2, normal_sender:1 }
+    data.sort((a,b) => (order[b.label]||0) - (order[a.label]||0))
+  } else if (sortOrder.value === 'confidence') {
+    data.sort((a,b) => (b.confidence||0) - (a.confidence||0))
+  } else {
+    data.sort((a,b) => (b.judged_sms_total||0) - (a.judged_sms_total||0))
+  }
+  return data
+})
+
+const paginatedData = computed(() => {
+  const start = (pagination.page-1) * pagination.pageSize
+  return sortedData.value.slice(start, start + pagination.pageSize)
+})
+
+const getRiskText = l => ({ spam_sender:'高风险', uncertain:'中风险', normal_sender:'低风险' }[l] || '未知')
+const getRiskType = l => ({ spam_sender:'danger', uncertain:'warning', normal_sender:'success' }[l] || 'info')
+const getLabelText = l => ({ spam_sender:'涉诈', uncertain:'不确定', normal_sender:'正常' }[l] || l || '-')
+const getLabelTagType = l => ({ spam_sender:'danger', uncertain:'warning', normal_sender:'success' }[l] || 'info')
+const getConfidenceColor = v => ((v||0)*100 >= 80 ? '#10b981' : (v||0)*100 >= 50 ? '#f59e0b' : '#ef4444')
+const rowClassName = ({ row }) => row.label === 'spam_sender' ? 'risk-high-row' : row.label === 'uncertain' ? 'risk-medium-row' : ''
+const formatEvidence = v => Array.isArray(v) ? v.join(', ') : typeof v === 'string' ? v : typeof v === 'object' ? JSON.stringify(v) : v || '-'
+const formatTime = t => t ? new Date(t).toLocaleString('zh-CN') : '-'
+const formatMs = ms => { if (!ms) return '0ms'; return ms < 1000 ? ms+'ms' : (ms/1000).toFixed(1)+'s' }
+
+const onRiskLevelChange = () => { filters.label=''; pagination.page=1 }
+const onLabelChange = () => { filters.riskLevel=''; pagination.page=1 }
+const onSizeChange = () => { pagination.page=1 }
+const onPageChange = () => {}
+const handleSort = () => { pagination.page=1 }
+const goBack = () => router.push('/dashboard')
+
+const refresh = async () => {
+  await Promise.all([loadTaskData(), loadProgress(), loadLlmSummary(), loadCallers()])
+}
+
+const loadTaskData = async () => {
+  if (!selectedDate.value) return
+  loading.value = true
+  try {
+    const res = await smsApi.getTask(selectedDate.value)
+    taskData.value = res.data || {}
+  } catch(e) {
+    console.error('loadTaskData error:', e)
+    ElMessage.error(e && e.response && e.response.data && e.response.data.detail ? e.response.data.detail : '加载任务数据失败')
+  }
+  finally { loading.value = false }
+}
+
+const loadProgress = async () => {
+  if (!selectedDate.value) return
+  progressLoading.value = true
+  try {
+    const res = await smsApi.getTaskProgress(selectedDate.value)
+    progressData.value = res.data
+  } catch(e) { console.error('loadProgress error', e) }
+  finally { progressLoading.value = false }
+}
+
+const loadLlmSummary = async () => {
+  if (!selectedDate.value) return
+  llmLoading.value = true
+  try {
+    const res = await smsApi.getLlmLogsSummary({ task_date: selectedDate.value })
+    const items = res.data && res.data.items ? res.data.items : (res.data || [])
+    const agg = { total:0, success:0, failed:0, tokens:0, elapsed_ms:0 }
+    for (const item of items) {
+      agg.total += item.total||0; agg.success += item.success||0; agg.failed += item.failed||0
+      agg.tokens += item.total_tokens||0; agg.elapsed_ms += item.total_elapsed_ms||0
+    }
+    llmData.value = agg
+  } catch(e) { console.error('loadLlmSummary error', e) }
+  finally { llmLoading.value = false }
+}
+
+const loadCallers = async () => {
+  if (!selectedDate.value) return
+  tableLoading.value = true
+  try {
+    let label = filters.label || undefined
+    if (filters.riskLevel && !filters.label) label = riskMap[filters.riskLevel]
+    const params = { task_date: selectedDate.value, limit:1000, offset:0 }
+    if (label) params.label = label
+    if (filters.category) params.category = filters.category
+    if (filters.method) params.method = filters.method
+    const res = await smsApi.getCallers(params)
+    const data = res.data
+    callers.value = data.items || data || []
+    totalCount.value = data.total || callers.value.length
+  } catch(e) { callers.value = []; totalCount.value = 0; console.error('loadCallers error', e) }
+  finally { tableLoading.value = false }
+}
+
+const handleSearch = () => { pagination.page=1; loadCallers() }
+const handleReset = () => { Object.assign(filters,{riskLevel:'',label:'',category:'',method:''}); pagination.page=1; loadCallers() }
+
+const viewCallerDetail = async (row) => {
+  currentCaller.value = row.caller; detailVisible.value = true; msgLoading.value = true
+  try {
+    const res = await smsApi.getCaller(encodeURIComponent(row.caller), { task_date: selectedDate.value })
+    callerDetail.value = res.data
+  } catch(e) { callerDetail.value = row; console.error('viewCallerDetail error', e) }
+  finally { msgLoading.value = false }
+}
+
+const viewMessages = async (row) => {
+  currentCaller.value = row.caller; messagesVisible.value = true
+  msgPagination.page = 1; msgTotal.value = 0
+  await loadMessages()
+}
+
+const loadMessages = async () => {
+  msgLoading.value = true
+  try {
+    const offset = (msgPagination.page-1) * msgPagination.pageSize
+    const res = await smsApi.getCallerMessages(encodeURIComponent(currentCaller.value), { task_date: selectedDate.value, limit: msgPagination.pageSize, offset })
+    callerMessages.value = res.data.items || res.data || []
+    msgTotal.value = res.data.total || callerMessages.value.length
+  } catch(e) { callerMessages.value = []; msgTotal.value = 0; console.error('loadMessages error', e) }
+  finally { msgLoading.value = false }
+}
+
+const viewMessageDetail = async (smsId) => {
+  msgDetailVisible.value = true; msgLoading.value = true
+  try { const res = await smsApi.getMessage(smsId); currentMessage.value = res.data }
+  catch(e) { currentMessage.value = null; console.error('viewMessageDetail error', e) }
+  finally { msgLoading.value = false }
+}
+
+onMounted(async () => {
+  if (!selectedDate.value) { ElMessage.warning('缺少任务日期参数'); router.push('/dashboard'); return }
+  await refresh()
+  progressTimer = setInterval(() => {
+    if (taskData.value && taskData.value.input_status !== 'closed' && taskData.value.nearline_status !== 'done') {
+      loadProgress(); loadLlmSummary()
+    }
+  }, 10000)
+})
+
+onUnmounted(() => { if (progressTimer) clearInterval(progressTimer) })
+</script>
+
+<style scoped>
+.task-detail-page { width: 100%; }
+.page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+.header-left h2 { margin: 0; font-size: 26px; font-weight: 700; }
+.page-desc { margin-top: 6px; color: #64748b; font-size: 14px; }
+.header-actions { display: flex; gap: 12px; }
+.info-card { margin-bottom: 16px; }
+.task-info-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 16px; }
+.task-badges { display: flex; gap: 10px; align-items: center; }
+.task-progress-inline { display: flex; align-items: center; gap: 12px; }
+.task-stages { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 16px; background: #f8fafc; border-radius: 12px; }
+.stage-item { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 20px; border-radius: 10px; background: #fff; min-width: 100px; transition: all 0.3s; }
+.stage-item.done { background: linear-gradient(135deg, #10b981 0%, #34d399 100%); color: #fff; }
+.stage-item.done .stage-icon { background: #fff; color: #10b981; }
+.stage-item.done .stage-name { color: #fff; }
+.stage-item.done .el-tag { opacity: 0.9; }
+.stage-icon { width: 28px; height: 28px; border-radius: 50%; background: #6366f1; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; }
+.stage-name { font-size: 13px; font-weight: 500; color: #475569; }
+.stage-arrow { font-size: 20px; color: #cbd5e1; font-weight: 700; }
+.task-info-row { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+.task-info-detail { display: flex; gap: 24px; font-size: 13px; color: #64748b; }
+.info-label { font-size: 13px; color: #64748b; }
+.progress-text { font-size: 12px; color: #64748b; margin-left: 8px; }
+.progress-row { margin-bottom: 24px; }
+.progress-card { }
+.progress-content { display: flex; flex-wrap: wrap; gap: 24px; }
+.progress-section { flex: 1; min-width: 200px; }
+.flex-1 { flex: 1; min-width: 220px; }
+.flex-2 { flex: 2; min-width: 300px; }
+.stat-card :deep(.el-card__header) { padding: 14px 20px; }
+.card-header { display: flex; justify-content: space-between; align-items: center; }
+.card-title { font-size: 14px; font-weight: 600; }
+.progress-section { margin-bottom: 16px; }
+.section-label { font-size: 12px; color: #64748b; margin-bottom: 8px; font-weight: 500; }
+.progress-row-inner { display: flex; align-items: center; gap: 12px; }
+.progress-stat { display: flex; flex-direction: column; align-items: center; min-width: 56px; }
+.ps-value { font-size: 18px; font-weight: 700; }
+.ps-label { font-size: 11px; color: #64748b; }
+.batch-tags { display: flex; gap: 8px; margin-top: 8px; }
+.recent-batches { margin-top: 16px; }
+.batch-list { display: flex; flex-direction: column; gap: 6px; }
+.batch-item { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: #f8fafc; border-radius: 6px; font-size: 12px; }
+.batch-info { color: #64748b; }
+.batch-error { color: #ef4444; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.llm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.llm-cell { display: flex; flex-direction: column; align-items: center; padding: 12px; background: #f8fafc; border-radius: 10px; }
+.lc-val { font-size: 22px; font-weight: 700; }
+.lc-label { font-size: 11px; color: #64748b; margin-top: 4px; }
+.stats-row { margin-bottom: 24px; }
+.stat-card { display: flex; align-items: center; gap: 16px; padding: 20px 24px; border-radius: 16px; margin-bottom: 16px; border: none; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+.stat-icon { width: 56px; height: 56px; border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0; }
+.stat-card.blue .stat-icon { background: linear-gradient(135deg,#6366f1,#818cf8); }
+.stat-card.red .stat-icon { background: linear-gradient(135deg,#ef4444,#f87171); }
+.stat-card.purple .stat-icon { background: linear-gradient(135deg,#8b5cf6,#a78bfa); }
+.stat-card.orange .stat-icon { background: linear-gradient(135deg,#f59e0b,#fbbf24); }
+.stat-content { flex: 1; }
+.stat-label { font-size: 13px; color: #64748b; margin-bottom: 4px; }
+.stat-value { font-size: 28px; font-weight: 700; }
+.filter-card { margin-bottom: 16px; }
+.filter-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.table-card { margin-bottom: 16px; }
+.table-toolbar { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #f1f5f9; }
+.table-info { font-size: 13px; color: #64748b; }
+.risk-high-row { background: rgba(239,68,68,0.06) !important; }
+.risk-medium-row { background: rgba(245,158,11,0.05) !important; }
+.phone-num { font-family: monospace; font-weight: 600; font-size: 13px; color: #6366f1; background: rgba(99,102,241,0.08); padding: 4px 8px; border-radius: 6px; }
+.category-tag { font-size: 12px; background: #f1f5f9; padding: 2px 8px; border-radius: 4px; }
+.text-muted { color: #64748b; }
+.confidence-wrap { display: flex; align-items: center; gap: 8px; }
+.conf-text { font-size: 12px; font-weight: 600; min-width: 36px; }
+.sms-count { font-weight: 600; font-family: monospace; }
+.pagination { display: flex; justify-content: flex-end; padding: 16px 20px; background: #fafbfc; border-top: 1px solid #f1f5f9; }
+.evidence-section { margin-top: 20px; }
+.evidence-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+</style>
