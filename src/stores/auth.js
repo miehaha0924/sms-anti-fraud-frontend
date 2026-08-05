@@ -24,17 +24,9 @@ export const useAuthStore = defineStore('auth', () => {
   const router = useRouter()
   const savedToken = localStorage.getItem('access_token')
   const savedUser = localStorage.getItem('user')
-  const cookieToken = getCookie(SESSION_COOKIE)
 
-  // 强制刷新时 Cookie 被清除，退出登录
-  if (savedToken && savedToken !== cookieToken) {
-    localStorage.removeItem('access_token')
-    localStorage.removeItem('user')
-    clearCookie(SESSION_COOKIE)
-  }
-
-  const token = ref(savedToken && savedToken === cookieToken ? savedToken : null)
-  const user = ref(savedToken && savedToken === cookieToken && savedUser ? JSON.parse(savedUser) : null)
+  const token = ref(savedToken || null)
+  const user = ref(savedUser ? JSON.parse(savedUser) : null)
 
   // Sync token to shared axios instance on init
   if (token.value) {
@@ -45,7 +37,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isLoggedIn = computed(() => !!token.value)
 
   async function login(username, password) {
-    const { data } = await smsApi.post('/api/auth/login', { username, password })
+    const { data } = await smsApi.post('/auth/login', { username, password })
     token.value = data.access_token
     user.value = data.user
     localStorage.setItem('access_token', data.access_token)

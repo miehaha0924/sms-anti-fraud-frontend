@@ -213,14 +213,20 @@ onMounted(async () => {
 .page-header h2 {
   margin: 0 0 4px;
   color: var(--text-primary);
-  font-size: 22px;
-  font-weight: 700;
+  font-size: 36px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  background: linear-gradient(135deg, #1e293b 0%, #6366f1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .page-desc {
   margin: 0;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 16px;
+  letter-spacing: 0.5px;
 }
 
 .card-header {

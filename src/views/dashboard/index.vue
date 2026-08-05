@@ -472,16 +472,21 @@ onUnmounted(() => {
 
 .header-title h1 {
   margin: 0;
-  font-size: 32px;
-  font-weight: 800;
+  font-size: 44px;
+  font-weight: 900;
   color: #1e293b;
-  letter-spacing: 4px;
+  letter-spacing: 6px;
+  background: linear-gradient(135deg, #1e293b 0%, #6366f1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .header-subtitle {
-  margin: 6px 0 0;
-  font-size: 13px;
+  margin: 8px 0 0;
+  font-size: 16px;
   color: #64748b;
+  letter-spacing: 1px;
 }
 
 .header-actions {
@@ -517,9 +522,9 @@ onUnmounted(() => {
 }
 
 .stat-icon {
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -534,19 +539,21 @@ onUnmounted(() => {
 .stat-body { flex: 1; min-width: 0; }
 
 .stat-label {
-  font-size: 12px;
+  font-size: 14px;
   color: #64748b;
   margin-bottom: 4px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
+  font-weight: 600;
 }
 
 .stat-value {
-  font-size: 30px;
-  font-weight: 800;
+  font-size: 38px;
+  font-weight: 900;
   color: #1e293b;
   line-height: 1.15;
   font-variant-numeric: tabular-nums;
+  letter-spacing: 1px;
 }
 
 /* ── Chart Section ── */
@@ -569,17 +576,19 @@ onUnmounted(() => {
 }
 
 .section-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: #334155;
+  font-size: 18px;
+  font-weight: 800;
+  color: #1e293b;
   display: flex;
   align-items: center;
   gap: 8px;
+  letter-spacing: 0.5px;
 }
 
 .section-hint {
-  font-size: 12px;
-  color: #475569;
+  font-size: 13px;
+  color: #64748b;
+  letter-spacing: 0.3px;
 }
 
 .chart-area {
@@ -764,10 +773,10 @@ onUnmounted(() => {
 /* ── Responsive ── */
 @media (max-width: 768px) {
   .dashboard-page { padding: 12px; }
-  .header-title h1 { font-size: 22px; }
-  .stat-value { font-size: 22px; }
+  .header-title h1 { font-size: 30px; }
+  .stat-value { font-size: 28px; }
   .stat-card { padding: 14px 16px; gap: 12px; }
-  .stat-icon { width: 44px; height: 44px; border-radius: 11px; }
+  .stat-icon { width: 50px; height: 50px; border-radius: 12px; }
   .trend-chart { height: 220px; }
   .category-chart { height: 220px; }
   .top10-type { max-width: 80px; }

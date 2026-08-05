@@ -110,7 +110,7 @@ import { workerModeApi } from '@/api/worker_mode'
 
 const currentMode = ref('')
 const selectedMode = ref('')
-const autoRun = ref(false)
+const autoRun = ref(true)
 const saving = ref(false)
 
 const hasChanges = computed(() => {

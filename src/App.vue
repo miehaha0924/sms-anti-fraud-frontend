@@ -7,7 +7,10 @@
           <div class="logo-icon-wrap">
             <el-icon :size="24" color="#fff"><Message /></el-icon>
           </div>
-          <span v-show="!isCollapse" class="logo-title">涉诈短信分析平台</span>
+          <div v-show="!isCollapse" class="logo-text-wrap">
+            <span class="logo-title">涉诈短信分析平台</span>
+            <span class="logo-tagline">智能反欺诈研判系统</span>
+          </div>
         </div>
         <el-menu
           :default-active="activeMenu"
@@ -182,15 +185,15 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 14px;
-  height: 72px;
+  height: 80px;
   padding: 0 20px;
   flex-shrink: 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .logo-icon-wrap {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 12px;
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
   display: flex;
@@ -202,10 +205,30 @@ onUnmounted(() => {
 
 .logo-title {
   color: #fff;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 20px;
+  font-weight: 800;
   white-space: nowrap;
-  letter-spacing: 0.3px;
+  letter-spacing: 1px;
+  background: linear-gradient(90deg, #fff 0%, #a5b4fc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.logo-text-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.logo-tagline {
+  display: block;
+  color: rgba(148, 163, 184, 0.7);
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-top: 2px;
+  font-weight: 400;
 }
 
 .sidebar-menu {

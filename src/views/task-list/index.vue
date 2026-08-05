@@ -224,9 +224,9 @@ onUnmounted(() => {
 
 <style scoped>
 .task-list-page { width: 100%; }
-.page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
-.page-header h2 { margin: 0; font-size: 26px; font-weight: 700; }
-.page-desc { margin-top: 6px; color: #666; font-size: 14px; }
+.page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+.page-header h2 { margin: 0; font-size: 36px; font-weight: 900; letter-spacing: 2px; background: linear-gradient(135deg, #1e293b 0%, #6366f1 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.page-desc { margin-top: 8px; color: #475569; font-size: 16px; letter-spacing: 0.5px; }
 .table-card { margin-bottom: 16px; }
 .progress-wrap { display: flex; align-items: center; gap: 10px; }
 .progress-text { font-size: 12px; color: #666; min-width: 60px; }

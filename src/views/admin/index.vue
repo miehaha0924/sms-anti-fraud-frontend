@@ -22,10 +22,15 @@
 }
 
 .admin-header h2 {
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 36px;
+  font-weight: 900;
   color: var(--text-primary);
   margin: 0;
+  letter-spacing: 2px;
+  background: linear-gradient(135deg, #1e293b 0%, #6366f1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .admin-content {

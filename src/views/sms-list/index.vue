@@ -324,8 +324,8 @@ const viewMessageDetail = async (smsId) => { msgDetailVisible.value = true; curr
 <style scoped>
 .sms-list-page { width: 100%; }
 .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
-.page-header h2 { margin: 0; font-size: 26px; font-weight: 700; color: var(--text-primary); }
-.page-desc { margin-top: 6px; color: var(--text-secondary); font-size: 14px; }
+.page-header h2 { margin: 0; font-size: 36px; font-weight: 900; color: var(--text-primary); letter-spacing: 2px; background: linear-gradient(135deg, #1e293b 0%, #6366f1 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.page-desc { margin-top: 8px; color: var(--text-secondary); font-size: 16px; letter-spacing: 0.5px; }
 
 .filter-card { margin-bottom: 16px; }
 .filter-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
@@ -338,7 +338,7 @@ const viewMessageDetail = async (smsId) => { msgDetailVisible.value = true; curr
 .stat-item.medium { background: linear-gradient(135deg, rgba(245,158,11,0.1), rgba(245,158,11,0.05)); }
 .stat-item.low { background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(16,185,129,0.05)); }
 .stat-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
-.stat-value { font-size: 24px; font-weight: 700; color: var(--text-primary); }
+.stat-value { font-size: 30px; font-weight: 800; color: var(--text-primary); letter-spacing: 1px; }
 .stat-item.high .stat-value { color: #ef4444; }
 .stat-item.medium .stat-value { color: #f59e0b; }
 .stat-item.low .stat-value { color: #10b981; }

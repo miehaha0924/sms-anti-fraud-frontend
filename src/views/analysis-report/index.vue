@@ -508,15 +508,21 @@ onMounted(() => {
 
 .header-left h2 {
   margin: 0;
-  font-size: 28px;
-  font-weight: 700;
+  font-size: 36px;
+  font-weight: 900;
   color: var(--text-primary);
+  letter-spacing: 2px;
+  background: linear-gradient(135deg, #1e293b 0%, #6366f1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .page-desc {
-  margin-top: 6px;
+  margin-top: 8px;
   color: var(--text-secondary);
-  font-size: 15px;
+  font-size: 16px;
+  letter-spacing: 0.5px;
 }
 
 .header-actions {
@@ -589,16 +595,17 @@ onMounted(() => {
 }
 
 .stat-value {
-  font-size: 32px;
-  font-weight: 700;
+  font-size: 40px;
+  font-weight: 800;
   color: var(--text-primary);
   line-height: 1.2;
 }
 
 .stat-label {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--text-secondary);
   margin-top: 4px;
+  letter-spacing: 0.5px;
 }
 
 .stat-arrow {

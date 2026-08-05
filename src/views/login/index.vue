@@ -40,6 +40,9 @@
             登录
           </el-button>
         </el-form>
+        <div class="login-footer">
+          <p>Anti-Fraud Intelligence System</p>
+        </div>
         <div style="display:none">
           <p>默认管理员: admin / admin123</p>
         </div>
@@ -128,16 +131,22 @@ const handleLogin = async () => {
 }
 
 .login-header h1 {
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 30px;
+  font-weight: 900;
   color: #1e293b;
   margin: 0 0 8px;
+  letter-spacing: 2px;
+  background: linear-gradient(135deg, #1e293b 0%, #6366f1 80%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .login-header p {
-  font-size: 14px;
+  font-size: 16px;
   color: #64748b;
   margin: 0;
+  letter-spacing: 2px;
 }
 
 .login-form {
@@ -166,6 +175,20 @@ const handleLogin = async () => {
 
 .login-btn:hover {
   background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+}
+
+.login-footer {
+  text-align: center;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.login-footer p {
+  font-size: 13px;
+  color: #94a3b8;
+  margin: 0;
+  letter-spacing: 2px;
+  text-transform: uppercase;
 }
 
 .login-tip {

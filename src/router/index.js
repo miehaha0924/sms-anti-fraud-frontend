@@ -85,20 +85,9 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
 
-  // 获取 Cookie 中的 session token（用于区分普通刷新和强制刷新）
-  const getCookie = (name) => {
-    const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'))
-    return match ? match[2] : null
-  }
-  const cookieToken = getCookie('fraud_sms_session')
-  const localToken = localStorage.getItem('access_token')
-
-  // 只有 Cookie 和 localStorage 都存在且一致时才允许访问受保护路由
-  const isValidSession = cookieToken && localToken && cookieToken === localToken
-
-  if (to.meta.requiresAuth && !isValidSession) {
+  if (to.meta.requiresAuth && !authStore.isLoggedIn) {
     next('/login')
-  } else if (to.path === '/login' && isValidSession) {
+  } else if (to.path === '/login' && authStore.isLoggedIn) {
     next('/dashboard')
   } else if (to.meta.requiresAdmin && !authStore.isAdmin) {
     next('/dashboard')
