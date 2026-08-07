@@ -316,7 +316,7 @@ const viewCallerDetail = async (row) => { currentCaller.value = row.caller; deta
 
 const viewMessages = async (row) => { currentCaller.value = row.caller; messagesVisible.value = true; msgPagination.page = 1; msgTotal.value = 0; await loadMessages() }
 
-const loadMessages = async () => { msgLoading.value = true; try { await store.fetchCallerMessages(currentCaller.value, { task_date: filters.date, page: msgPagination.page, page_size: msgPagination.pageSize }); callerMessages.value = store.callerMessages; if (msgTotal.value === 0) msgTotal.value = store.total || callerMessages.value.length } finally { msgLoading.value = false } }
+const loadMessages = async () => { msgLoading.value = true; try { await store.fetchCallerMessages(currentCaller.value, { task_date: filters.date, page: msgPagination.page, page_size: msgPagination.pageSize }); callerMessages.value = store.callerMessages; msgTotal.value = store.total || callerMessages.value.length } finally { msgLoading.value = false } }
 
 const viewMessageDetail = async (smsId) => { msgDetailVisible.value = true; currentMessage.value = await store.getMessage(smsId) }
 </script>

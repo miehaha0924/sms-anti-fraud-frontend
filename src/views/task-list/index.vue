@@ -142,12 +142,10 @@ const getProgressText = (row) => {
   if (row.status === 'finished' || row.status === 'completed') return '已完成'
   if (row.status === 'running') {
     if (row.input_status === 'closed' && row.nearline_status === 'done' && row.day_end_status === 'done') return '完成'
-    if (row.input_status === 'closed' && row.nearline_status === 'done') return '日终分析'
+    if (row.input_status === 'closed' && row.nearline_status === 'done') return '日终分析中'
     if (row.input_status === 'closed') return '近线研判'
-    if (row.input_status === 'closing') return '关闭数据'
-    // 数据收集中 - 显示百分比
-    const pct = getProgress(row)
-    return pct + '%'
+    if (row.input_status === 'closing') return '数据采集中'
+    return '等待开始'
   }
   return '未知'
 }

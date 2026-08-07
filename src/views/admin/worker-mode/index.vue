@@ -231,8 +231,6 @@ onMounted(async () => {
   background: linear-gradient(135deg, rgba(99,102,241,0.06), rgba(99,102,241,0.02));
   box-shadow: 0 8px 24px rgba(99, 102, 241, 0.2);
 }
-.mode-card.recommended { border-color: #10b981; }
-.mode-card.recommended:hover { border-color: #10b981; }
 .mode-card.recommended.active {
   border-color: #10b981;
   border-width: 3px;

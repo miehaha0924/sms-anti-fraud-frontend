@@ -12,6 +12,29 @@ dist
 dist-ssr
 *.local
 
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Local data and archives
+*.db
+*.sqlite
+*.sqlite3
+*.csv
+*.xls
+*.xlsx
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.7z
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
